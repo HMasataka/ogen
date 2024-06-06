@@ -1,49 +1,31 @@
 package main
 
 import (
-	"context"
-	"log"
 	"net/http"
 
+	"github.com/HMasataka/ogen/api"
+	"github.com/HMasataka/ogen/middleware"
 	"github.com/HMasataka/ogen/ogen"
+	chi "github.com/go-chi/chi/v5/middleware"
 )
 
-type petService struct {
-	ogen.UnimplementedHandler
-}
-
-func (n *petService) CreatePets(ctx context.Context, req *ogen.Pet) error {
-	return nil
-}
-
-func (n *petService) ListPets(ctx context.Context, params ogen.ListPetsParams) (*ogen.PetsHeaders, error) {
-	var pet ogen.PetsHeaders
-	return &pet, nil
-}
-
-func (n *petService) ShowPetById(ctx context.Context, params ogen.ShowPetByIdParams) (*ogen.Pet, error) {
-	err := ogen.Error{
-		Code:    1,
-		Message: "error",
-	}
-
-	errorStatusCode := ogen.ErrorStatusCode{
-		StatusCode: http.StatusBadRequest,
-		Response:   err,
-	}
-
-	return nil, &errorStatusCode
-}
-
-func main() {
-	service := &petService{}
+func newHTTPServer() *http.Server {
+	service := &api.PetService{}
 
 	s, err := ogen.NewServer(service)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
-	if err := http.ListenAndServe(":8080", s); err != nil {
-		log.Fatalln(err)
+	return &http.Server{
+		Addr:    ":8080",
+		Handler: middleware.Wrap(s, chi.Logger),
+	}
+}
+
+func main() {
+	server := newHTTPServer()
+	if err := server.ListenAndServe(); err != nil {
+		panic(err)
 	}
 }
